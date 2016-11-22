@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private Location currentLocation;
     private LocationManager locationManager;
+    private Map<Marker, JSONObject> placesMap;
     private final String locationProvider = LocationManager.GPS_PROVIDER;
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
 
@@ -88,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void run() {
                 final double currentLatitude = currentLocation.getLatitude();
                 final double currentLongitude = currentLocation.getLongitude();
-                String urlMainRequest = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + currentLatitude + "," + currentLongitude + "&radius=2000&types=food&name=cruise&key=" + apiKey;
+                String urlMainRequest = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + currentLatitude + "," + currentLongitude + "&radius=1000&types=food&key=" + apiKey;
                 try {
                     JSONObject jsonAllPlaces = getJSONObjectFromURL(urlMainRequest);
                     /*
@@ -98,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     */
 
 
-                    final Map<Marker, JSONObject> placesMap = new HashMap<Marker, JSONObject>();
+                    placesMap = new HashMap<Marker, JSONObject>();
                     final JSONArray jsonPlacesArray = jsonAllPlaces.getJSONArray("results");
                     if (jsonPlacesArray.length() <= 0)
                         return;
@@ -175,18 +176,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap = googleMap;
         UiSettings us = mMap.getUiSettings();
         us.setAllGesturesEnabled(false);
+        us.setZoomGesturesEnabled(true);
         us.setMapToolbarEnabled(false);
 
         mMap.setPadding(10, 10, 10, 10);
 
+        mMap.setOnMarkerClickListener(this);
+
         LatLng posInit = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-        float zoomInit = 13f;
+        float zoomInit = 14f;
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(posInit, zoomInit));
 
         // Draw a the circle
         CircleOptions co = new CircleOptions()
                 .center(posInit)
-                .radius(2000);
+                .radius(1000);
         mMap.addCircle(co);
 
     }
@@ -200,8 +204,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-
-        return true;
+        showPoiInfo(placesMap.get(marker));
+        return false;
     }
 
     @Override
@@ -223,11 +227,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void showPoiInfo(JSONObject currentPlace) {
         try {
             String name = currentPlace.getString("name");
+
+            double currentLatitude = currentLocation.getLatitude();
+            double currentLongitude = currentLocation.getLongitude();
+            double latitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lat");
+            double longitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lng");
+
+            float distance[] = new float[1];
+            Location.distanceBetween(latitude, longitude, currentLatitude, currentLongitude, distance);
             ((TextView) findViewById(R.id.name_POI)).setText(name);
+            ((TextView) findViewById(R.id.dist_POI)).setText(Integer.toString(Math.round(distance[0]))+ "m");
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
     }
 
     @Override
