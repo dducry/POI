@@ -49,6 +49,82 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final String locationProvider = LocationManager.GPS_PROVIDER;
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
 
+    // A thread to do http requests for the radar search
+    private class SearchPoiThread implements Runnable {
+        @Override
+        public void run() {
+            final String apiKey = getString(R.string.google_maps_key);
+            final double currentLatitude = currentLocation.getLatitude();
+            final double currentLongitude = currentLocation.getLongitude();
+            String urlMainRequest = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + currentLatitude + "," + currentLongitude + "&radius=1000&types=food&key=" + apiKey;
+            try {
+                JSONObject jsonAllPlaces = getJSONObjectFromURL(urlMainRequest);
+                    /*
+                    String specificPlaceId = jsonAllPlaces.getJSONArray("results").getJSONObject(0).getString("place_id");
+                    String urlSpecificRequest = "https://maps.googleapis.com/maps/api/place/details/json?placeid=" + specificPlaceId + "&key=" + apiKey;
+                    JSONObject jsonSpecificPlace = getJSONObjectFromURL(urlSpecificRequest);
+                    */
+
+
+                placesMap = new HashMap<Marker, JSONObject>();
+                final JSONArray jsonPlacesArray = jsonAllPlaces.getJSONArray("results");
+                if (jsonPlacesArray.length() <= 0)
+                    return;
+
+                while (mMap == null) ;
+                // Update UI in the right thread
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            // Add markers on map for all POI found and keep the closest
+                            JSONObject closest = null;
+                            float minDist = Float.MAX_VALUE;
+                            for (int i = 0; i < jsonPlacesArray.length(); i++) {
+                                JSONObject currentPlace = jsonPlacesArray.getJSONObject(i);
+                                double latitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lat");
+                                double longitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lng");
+
+                                float distance[] = new float[1];
+                                Location.distanceBetween(latitude, longitude, currentLatitude, currentLongitude, distance);
+                                if (distance[0] < minDist) {
+                                    minDist = distance[0];
+                                    closest = currentPlace;
+                                }
+                                LatLng currentPos = new LatLng(latitude, longitude);
+                                Marker currentMarker = mMap.addMarker(new MarkerOptions()
+                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
+                                        .position(currentPos));
+                                placesMap.put(currentMarker, currentPlace);
+                            }
+                            showPoiInfo(closest);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+                /*
+                runOnUiThread(new Runnable(){
+                    @Override
+                    public void run() {
+                        LatLng pos = new LatLng(-33.8670522, 151.1957362);
+                        MarkerOptions mo = new MarkerOptions()
+                                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
+                                .position(pos)
+                                .draggable(false);
+                        mMap.addMarker(mo);
+                    }
+                });
+                */
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,9 +132,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Obtain the current location
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
-            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED);
+            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                ;
         }
         locationManager.requestLocationUpdates(locationProvider, 120000, 50, this);
         currentLocation = locationManager.getLastKnownLocation(locationProvider);
@@ -82,82 +159,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        final String apiKey = getString(R.string.google_maps_key);
-
-        // Launch a thread to do http requests for the radar search
-        new Thread(new Runnable() {
-            public void run() {
-                final double currentLatitude = currentLocation.getLatitude();
-                final double currentLongitude = currentLocation.getLongitude();
-                String urlMainRequest = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + currentLatitude + "," + currentLongitude + "&radius=1000&types=food&key=" + apiKey;
-                try {
-                    JSONObject jsonAllPlaces = getJSONObjectFromURL(urlMainRequest);
-                    /*
-                    String specificPlaceId = jsonAllPlaces.getJSONArray("results").getJSONObject(0).getString("place_id");
-                    String urlSpecificRequest = "https://maps.googleapis.com/maps/api/place/details/json?placeid=" + specificPlaceId + "&key=" + apiKey;
-                    JSONObject jsonSpecificPlace = getJSONObjectFromURL(urlSpecificRequest);
-                    */
-
-
-                    placesMap = new HashMap<Marker, JSONObject>();
-                    final JSONArray jsonPlacesArray = jsonAllPlaces.getJSONArray("results");
-                    if (jsonPlacesArray.length() <= 0)
-                        return;
-
-                    while (mMap == null) ;
-                    // Update UI in the right thread
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                // Add markers on map for all POI found and keep the closest
-                                JSONObject closest = null;
-                                float minDist = Float.MAX_VALUE;
-                                for (int i = 0; i < jsonPlacesArray.length(); i++) {
-                                    JSONObject currentPlace = jsonPlacesArray.getJSONObject(i);
-                                    double latitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lat");
-                                    double longitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lng");
-
-                                    float distance[] = new float[1];
-                                    Location.distanceBetween(latitude, longitude, currentLatitude, currentLongitude, distance);
-                                    if (distance[0] < minDist) {
-                                        minDist = distance[0];
-                                        closest = currentPlace;
-                                    }
-                                    LatLng currentPos = new LatLng(latitude, longitude);
-                                    Marker currentMarker = mMap.addMarker(new MarkerOptions()
-                                            .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
-                                            .position(currentPos));
-                                    placesMap.put(currentMarker, currentPlace);
-                                }
-                                showPoiInfo(closest);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    });
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                /*
-                runOnUiThread(new Runnable(){
-                    @Override
-                    public void run() {
-                        LatLng pos = new LatLng(-33.8670522, 151.1957362);
-                        MarkerOptions mo = new MarkerOptions()
-                                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
-                                .position(pos)
-                                .draggable(false);
-                        mMap.addMarker(mo);
-                    }
-                });
-                */
-            }
-        }).start();
+        // Launch searching thread
+        new Thread(new SearchPoiThread()).start();
     }
+
+
 
 
     /**
@@ -245,7 +251,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onLocationChanged(Location location) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
+            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                ;
         }
         currentLocation = locationManager.getLastKnownLocation(locationProvider);
     }
