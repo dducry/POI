@@ -7,6 +7,7 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -23,7 +24,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -39,6 +39,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, LocationListener {
@@ -47,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Location currentLocation;
     private LocationManager locationManager;
     private Map<Marker, JSONObject> placesMap;
-    private String locationProvider = LocationManager.GPS_PROVIDER;
+    private String locationProvider;
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
 
     // A thread to do http requests for the radar search
@@ -94,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 }
                                 LatLng currentPos = new LatLng(latitude, longitude);
                                 Marker currentMarker = mMap.addMarker(new MarkerOptions()
-                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
+                                        //.icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
                                         .position(currentPos));
                                 placesMap.put(currentMarker, currentPlace);
                             }
@@ -104,9 +105,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         }
                     }
                 });
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
+            } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
 
@@ -131,18 +130,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
 
         // Obtain the current location
-
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
-            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-                ;
-        }
-        Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        locationProvider = locationManager.getBestProvider(criteria, true);
-        locationManager.requestLocationUpdates(locationProvider, 120000, 50, this);
-        currentLocation = locationManager.getLastKnownLocation(locationProvider);
+        searchLocationProvider();
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -254,27 +243,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onLocationChanged(Location location) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
-            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-                ;
-        }
-        currentLocation = locationManager.getLastKnownLocation(locationProvider);
+        currentLocation = location;
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-
+        // if we loose the current location provider or if there is no locationProvider yet, then we look for another.
+        if((provider.equals(locationProvider) && status == LocationProvider.OUT_OF_SERVICE) || (locationProvider == null && status == LocationProvider.AVAILABLE))
+            searchLocationProvider();
     }
+
 
     @Override
     public void onProviderEnabled(String provider) {
-
+        // if there is no locationProvider yet and the new one respects the criteria, so we take it
+        if (locationProvider == null){
+            Criteria criteria = new Criteria();
+            criteria.setAccuracy(Criteria.ACCURACY_FINE);
+            List<String> locationProviders = locationManager.getProviders(criteria, true);
+            if(locationProviders.contains(provider))
+                locationProvider = provider;
+        }
     }
 
     @Override
     public void onProviderDisabled(String provider) {
-
+        // if user disables the current location provider, then we look for another.
+        if(provider.equals(locationProvider))
+            searchLocationProvider();
     }
 
     @Override
@@ -285,6 +281,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
         */
+    }
+
+
+    protected void searchLocationProvider(){
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
+            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                ;
+        }
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        locationProvider = locationManager.getBestProvider(criteria, true);
+        // if no provider exists, then create a fictive location
+        if (locationProvider == null){
+            currentLocation = new Location("");
+            currentLocation.setLatitude(0.0d);
+            currentLocation.setLongitude(0.0d);
+        }
+        else {
+            locationManager.requestLocationUpdates(locationProvider, 120000, 50, this);
+            currentLocation = locationManager.getLastKnownLocation(locationProvider);
+        }
     }
 
 
