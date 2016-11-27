@@ -3,6 +3,7 @@ package com.poi.poi;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -46,7 +47,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Location currentLocation;
     private LocationManager locationManager;
     private Map<Marker, JSONObject> placesMap;
-    private final String locationProvider = LocationManager.GPS_PROVIDER;
+    private String locationProvider = LocationManager.GPS_PROVIDER;
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
 
     // A thread to do http requests for the radar search
@@ -137,6 +138,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
                 ;
         }
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        locationProvider = locationManager.getBestProvider(criteria, true);
         locationManager.requestLocationUpdates(locationProvider, 120000, 50, this);
         currentLocation = locationManager.getLastKnownLocation(locationProvider);
 
