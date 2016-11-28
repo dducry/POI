@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="liste_type">
+        <item>airport</item>
+        <item>bakery</item>
+        <item>bar</item>
+        <item>church</item>
+        <item>food</item>
+        <item>health</item>
+        <item>library</item>
+        <item>pharmacy</item>
+        <item>police</item>
+        <item>school</item>
+        <item>store</item>
+        <item>train_station</item>
+    </array>
+</resources>

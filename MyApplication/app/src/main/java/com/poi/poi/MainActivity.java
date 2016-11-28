@@ -62,8 +62,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         switch (key) {
             // if the rayon preference has changed, we run the searching thread
-            case "Rayon": {
+            case "rayon":
+            case "types": {
                 new Thread(new SearchPoiThread()).start();
+                break;
             }
         }
     }
@@ -75,8 +77,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             final String apiKey = getString(R.string.google_maps_key);
             final double currentLatitude = currentLocation.getLatitude();
             final double currentLongitude = currentLocation.getLongitude();
-            String rayon = preferences.getString("Rayon", "2000");
-            String urlMainRequest = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + currentLatitude + "," + currentLongitude + "&radius=" + rayon + "&types=food&key=" + apiKey;
+            final String type = preferences.getString("types", "food");
+            final String rayon = preferences.getString("rayon", "2000");
+            String urlMainRequest = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + currentLatitude + "," + currentLongitude + "&radius=" + rayon + "&types=" + type + "&key=" + apiKey;
             try {
                 final JSONObject jsonAllPlaces = getJSONObjectFromURL(urlMainRequest);
                     /*
@@ -99,7 +102,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, mMap.getCameraPosition().zoom));
 
                             // Draw the circle
-                            String rayon = preferences.getString("Rayon", "2000");
                             CircleOptions co = new CircleOptions()
                                     .center(pos)
                                     .radius(Integer.parseInt(rayon));

@@ -1,12 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <PreferenceCategory
-        android:title="Map"/>
-    <EditTextPreference
-        android:key="Rayon"
-        android:title="Rayon"
-        android:dialogTitle="Titre de la boite"
-        android:positiveButtonText="OK"
-        android:negativeButtonText="Cancel"
-        android:defaultValue="2000"/>
+    <PreferenceCategory android:title="Map">
+        <EditTextPreference
+            android:defaultValue="2000"
+            android:dialogTitle="Choisissez le rayon de recherche"
+            android:key="rayon"
+            android:negativeButtonText="Annuler"
+            android:positiveButtonText="OK"
+            android:title="Rayon de recherche" />
+        <ListPreference
+            android:key="types"
+            android:dialogTitle="Choisissez le type de lieu"
+            android:title="Types de lieu"
+            android:entries="@array/liste_type"
+            android:entryValues="@array/liste_type"
+            android:negativeButtonText="Annuler" />
+    </PreferenceCategory>
+
 </PreferenceScreen>
