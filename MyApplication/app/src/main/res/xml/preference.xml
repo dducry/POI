@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:title="Map"/>
+    <EditTextPreference
+        android:key="Rayon"
+        android:title="Rayon"
+        android:dialogTitle="Titre de la boite"
+        android:positiveButtonText="OK"
+        android:negativeButtonText="Cancel"
+        android:defaultValue="2000"/>
+</PreferenceScreen>

@@ -2,6 +2,8 @@ package com.poi.poi;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
@@ -9,6 +11,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -24,6 +27,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -42,14 +46,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, LocationListener {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, LocationListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private GoogleMap mMap;
     private Location currentLocation;
     private LocationManager locationManager;
     private Map<Marker, JSONObject> placesMap;
+    private Marker currentMarker = null;
     private String locationProvider;
+    private SharedPreferences preferences;
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
+
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        switch (key) {
+            // if the rayon preference has changed, we run the searching thread
+            case "Rayon": {
+                new Thread(new SearchPoiThread()).start();
+            }
+        }
+    }
 
     // A thread to do http requests for the radar search
     private class SearchPoiThread implements Runnable {
@@ -58,20 +75,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             final String apiKey = getString(R.string.google_maps_key);
             final double currentLatitude = currentLocation.getLatitude();
             final double currentLongitude = currentLocation.getLongitude();
-            String urlMainRequest = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + currentLatitude + "," + currentLongitude + "&radius=1000&types=food&key=" + apiKey;
+            String rayon = preferences.getString("Rayon", "2000");
+            String urlMainRequest = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + currentLatitude + "," + currentLongitude + "&radius=" + rayon + "&types=food&key=" + apiKey;
             try {
-                JSONObject jsonAllPlaces = getJSONObjectFromURL(urlMainRequest);
+                final JSONObject jsonAllPlaces = getJSONObjectFromURL(urlMainRequest);
                     /*
                     String specificPlaceId = jsonAllPlaces.getJSONArray("results").getJSONObject(0).getString("place_id");
                     String urlSpecificRequest = "https://maps.googleapis.com/maps/api/place/details/json?placeid=" + specificPlaceId + "&key=" + apiKey;
                     JSONObject jsonSpecificPlace = getJSONObjectFromURL(urlSpecificRequest);
                     */
-
-
-                placesMap = new HashMap<Marker, JSONObject>();
-                final JSONArray jsonPlacesArray = jsonAllPlaces.getJSONArray("results");
-                if (jsonPlacesArray.length() <= 0)
-                    return;
 
                 while (mMap == null) ;
                 // Update UI in the right thread
@@ -79,8 +91,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     @Override
                     public void run() {
                         try {
+                            // Remove every elements on the map
+                            mMap.clear();
+
+                            // Move camera to the current location
+                            LatLng pos = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, mMap.getCameraPosition().zoom));
+
+                            // Draw the circle
+                            String rayon = preferences.getString("Rayon", "2000");
+                            CircleOptions co = new CircleOptions()
+                                    .center(pos)
+                                    .radius(Integer.parseInt(rayon));
+                            mMap.addCircle(co);
+
+                            placesMap = new HashMap<Marker, JSONObject>();
+                            JSONArray jsonPlacesArray = jsonAllPlaces.getJSONArray("results");
+                            if (jsonPlacesArray.length() <= 0)
+                                return;
+
                             // Add markers on map for all POI found and keep the closest
                             JSONObject closest = null;
+                            Marker closestMarker = null;
                             float minDist = Float.MAX_VALUE;
                             for (int i = 0; i < jsonPlacesArray.length(); i++) {
                                 JSONObject currentPlace = jsonPlacesArray.getJSONObject(i);
@@ -89,17 +121,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                                 float distance[] = new float[1];
                                 Location.distanceBetween(latitude, longitude, currentLatitude, currentLongitude, distance);
+                                LatLng currentPos = new LatLng(latitude, longitude);
+                                Marker cMarker = mMap.addMarker(new MarkerOptions()
+                                        //.icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
+                                        .position(currentPos));
                                 if (distance[0] < minDist) {
                                     minDist = distance[0];
                                     closest = currentPlace;
+                                    closestMarker = cMarker;
                                 }
-                                LatLng currentPos = new LatLng(latitude, longitude);
-                                Marker currentMarker = mMap.addMarker(new MarkerOptions()
-                                        //.icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
-                                        .position(currentPos));
-                                placesMap.put(currentMarker, currentPlace);
+                                placesMap.put(cMarker, currentPlace);
+
                             }
-                            showPoiInfo(closest);
+                            if (closest != null) {
+                                currentMarker = closestMarker;
+                                closestMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+                                showPoiInfo(closest);
+                            }
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -129,6 +167,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        preferences.registerOnSharedPreferenceChangeListener(this);
+
         // Obtain the current location
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         searchLocationProvider();
@@ -157,8 +198,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-
-
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -169,6 +208,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
      * installed Google Play services and returned to the app.
      */
 
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
@@ -178,21 +218,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         us.setZoomGesturesEnabled(true);
         us.setMapToolbarEnabled(false);
 
-        mMap.setPadding(10, 10, 10, 10);
-
         mMap.setOnMarkerClickListener(this);
 
         LatLng posInit = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
         float zoomInit = 14f;
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(posInit, zoomInit));
-
-        // Draw a the circle
-        CircleOptions co = new CircleOptions()
-                .center(posInit)
-                .radius(1000);
-        mMap.addCircle(co);
-
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -201,11 +233,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return true;
     }
 
+
     @Override
     public boolean onMarkerClick(Marker marker) {
         showPoiInfo(placesMap.get(marker));
+        if (currentMarker != null)
+            currentMarker.setIcon(BitmapDescriptorFactory.defaultMarker());
+        currentMarker = marker;
+        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
         return false;
     }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -215,8 +253,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        if (id == R.id.preferences) {
+            startActivity(new Intent(MainActivity.this, PreferenceActivityExample.class));
         }
 
         return super.onOptionsItemSelected(item);
@@ -235,7 +273,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             float distance[] = new float[1];
             Location.distanceBetween(latitude, longitude, currentLatitude, currentLongitude, distance);
             ((TextView) findViewById(R.id.name_POI)).setText(name);
-            ((TextView) findViewById(R.id.dist_POI)).setText(Integer.toString(Math.round(distance[0]))+ "m");
+            ((TextView) findViewById(R.id.dist_POI)).setText(Integer.toString(Math.round(distance[0])) + "m");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -244,12 +282,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onLocationChanged(Location location) {
         currentLocation = location;
+        new Thread(new SearchPoiThread()).start();
+
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
         // if we loose the current location provider or if there is no locationProvider yet, then we look for another.
-        if((provider.equals(locationProvider) && status == LocationProvider.OUT_OF_SERVICE) || (locationProvider == null && status == LocationProvider.AVAILABLE))
+        if ((provider.equals(locationProvider) && status == LocationProvider.OUT_OF_SERVICE) || (locationProvider == null && status == LocationProvider.AVAILABLE))
             searchLocationProvider();
     }
 
@@ -257,11 +297,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onProviderEnabled(String provider) {
         // if there is no locationProvider yet and the new one respects the criteria, so we take it
-        if (locationProvider == null){
+        if (locationProvider == null) {
             Criteria criteria = new Criteria();
             criteria.setAccuracy(Criteria.ACCURACY_FINE);
             List<String> locationProviders = locationManager.getProviders(criteria, true);
-            if(locationProviders.contains(provider))
+            if (locationProviders.contains(provider))
                 locationProvider = provider;
         }
     }
@@ -269,12 +309,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onProviderDisabled(String provider) {
         // if user disables the current location provider, then we look for another.
-        if(provider.equals(locationProvider))
+        if (provider.equals(locationProvider))
             searchLocationProvider();
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[],  int grantResults[]){
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int grantResults[]) {
         /*switch (requestCode) {
             case ACCESS_FINE_LOCATION_REQUEST: {
                 if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED);
@@ -284,7 +324,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-    protected void searchLocationProvider(){
+    protected void searchLocationProvider() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
             while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
@@ -294,12 +334,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
         locationProvider = locationManager.getBestProvider(criteria, true);
         // if no provider exists, then create a fictive location
-        if (locationProvider == null){
+        if (locationProvider == null) {
             currentLocation = new Location("");
             currentLocation.setLatitude(0.0d);
             currentLocation.setLongitude(0.0d);
-        }
-        else {
+        } else {
             locationManager.requestLocationUpdates(locationProvider, 120000, 50, this);
             currentLocation = locationManager.getLastKnownLocation(locationProvider);
         }

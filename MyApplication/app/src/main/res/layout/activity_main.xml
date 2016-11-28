@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 
-
-
 <android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fitsSystemWindows="true"
-        tools:context="com.poi.poi.MainActivity">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context="com.poi.poi.MainActivity">
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
 
         <android.support.design.widget.AppBarLayout
@@ -31,28 +29,43 @@
                 app:popupTheme="@style/AppTheme.PopupOverlay" />
         </android.support.design.widget.AppBarLayout>
 
-        <include layout="@layout/activity_maps"/>
+        <include layout="@layout/activity_maps" />
 
         <LinearLayout
-            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="10">
-            <TextView
-                android:id="@+id/name_POI"
+            android:layout_weight="10"
+            android:orientation="vertical">
+
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="30sp"
+                android:layout_height="match_parent"
                 android:layout_weight="50"
-                android:text="name_POI" />
-            <TextView
-                android:id="@+id/dist_POI"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="right"
-                android:textSize="30sp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/name_POI"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="50"
+                    android:text="name_POI"
+                    android:textSize="30sp" />
+
+                <TextView
+                    android:id="@+id/dist_POI"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="50"
+                    android:gravity="right"
+                    android:text="dist_POI"
+                    android:textSize="30sp" />
+            </LinearLayout>
+
+            <Button
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
                 android:layout_weight="50"
-                android:text="dist_POI" />
+                android:text="Track"/>
         </LinearLayout>
     </LinearLayout>
 

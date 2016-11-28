@@ -3,15 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.poi.poi.MainActivity">
     <item
-        android:id="@+id/action_settings"
         android:orderInCategory="100"
         android:title="@string/action_settings"
         app:showAsAction="always" >
         <menu>
             <item
-                android:id="@+id/salut"
+                android:id="@+id/preferences"
                 android:orderInCategory="100"
-                android:title="salut"
+                android:title="Préférences"
                 app:showAsAction="never" />
         </menu>
     </item>
