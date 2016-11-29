@@ -128,10 +128,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             mMap.addCircle(co);
 
                             // Set limits for the camera
-                            LatLng swLimit = new LatLng(currentLatitude - (180d/PI)*(Integer.parseInt(rayon)/6378137d), currentLongitude + (180d/PI)*(Integer.parseInt(rayon)/6378137d)/cos(currentLatitude));
-                            LatLng neLimit = new LatLng(currentLatitude + (180d/PI)*(Integer.parseInt(rayon)/6378137d), currentLongitude - (180d/PI)*(Integer.parseInt(rayon)/6378137d)/cos(currentLatitude));
-                            System.out.println(swLimit);
-                            System.out.println(pos);
+                            LatLng swLimit = new LatLng(currentLatitude - (180d / PI) * (Integer.parseInt(rayon) / 6378137d), currentLongitude + (180d / PI) * (Integer.parseInt(rayon) / 6378137d) / cos(currentLatitude));
+                            LatLng neLimit = new LatLng(currentLatitude + (180d / PI) * (Integer.parseInt(rayon) / 6378137d), currentLongitude - (180d / PI) * (Integer.parseInt(rayon) / 6378137d) / cos(currentLatitude));
                             mMap.setLatLngBoundsForCameraTarget(new LatLngBounds(swLimit, neLimit));
                             placesMap = new HashMap<Marker, JSONObject>();
                             JSONArray jsonPlacesArray = jsonAllPlaces.getJSONArray("results");
@@ -254,6 +252,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         us.setAllGesturesEnabled(true);
         us.setMapToolbarEnabled(false);
 
+        switch (preferences.getString("types_carte", "normal")) {
+            case "normal": {
+                mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                break;
+            }
+            case "hybrid": {
+                mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                break;
+            }
+            case "satellite": {
+                mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                break;
+            }
+        }
+
         mMap.setOnMarkerClickListener(this);
 
         LatLng posInit = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
@@ -369,19 +382,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
         locationProvider = locationManager.getBestProvider(criteria, true);
-        // if no provider exists, then create a fictive location
-        if (locationProvider == null) {
+        locationManager.requestLocationUpdates(locationProvider, 120000, 50, this);
+        currentLocation = locationManager.getLastKnownLocation(locationProvider);
+        // if no location is provided, then create a fictive location
+        if (currentLocation == null) {
             currentLocation = new Location("");
             currentLocation.setLatitude(0.0d);
             currentLocation.setLongitude(0.0d);
-        } else {
-            locationManager.requestLocationUpdates(locationProvider, 120000, 50, this);
-            currentLocation = locationManager.getLastKnownLocation(locationProvider);
         }
     }
 
 
-    // Static method to manage connection to google places server returning JSON data
+        // Static method to manage connection to google places server returning JSON data
+
     public static JSONObject getJSONObjectFromURL(String urlString) throws IOException, JSONException {
 
         HttpURLConnection urlConnection = null;
