@@ -14,4 +14,9 @@
         <item>store</item>
         <item>train_station</item>
     </array>
+    <string-array name="liste_type_carte">
+        <item>normal</item>
+        <item>hybrid</item>
+        <item>satellite</item>
+    </string-array>
 </resources>

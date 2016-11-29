@@ -15,6 +15,13 @@
             android:entries="@array/liste_type"
             android:entryValues="@array/liste_type"
             android:negativeButtonText="Annuler" />
+        <ListPreference
+            android:key="types_carte"
+            android:dialogTitle="Choisissez le type de carte"
+            android:title="Types de carte"
+            android:entries="@array/liste_type_carte"
+            android:entryValues="@array/liste_type_carte"
+            android:negativeButtonText="Annuler" />
     </PreferenceCategory>
 
 </PreferenceScreen>

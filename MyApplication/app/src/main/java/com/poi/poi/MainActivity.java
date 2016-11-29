@@ -30,6 +30,7 @@ import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -45,6 +46,9 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.lang.Math.PI;
+import static java.lang.Math.cos;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, LocationListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -66,6 +70,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case "types": {
                 new Thread(new SearchPoiThread()).start();
                 break;
+            }
+            case "types_carte": {
+                switch (preferences.getString("types_carte", "normal")) {
+                    case "normal": {
+                        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                        break;
+                    }
+                    case "hybrid": {
+                        mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                        break;
+                    }
+                    case "satellite": {
+                        mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                        break;
+                    }
+                }
             }
         }
     }
@@ -98,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             mMap.clear();
 
                             // Move camera to the current location
-                            LatLng pos = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+                            LatLng pos = new LatLng(currentLatitude, currentLongitude);
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, mMap.getCameraPosition().zoom));
 
                             // Draw the circle
@@ -107,10 +127,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     .radius(Integer.parseInt(rayon));
                             mMap.addCircle(co);
 
+                            // Set limits for the camera
+                            LatLng swLimit = new LatLng(currentLatitude - (180d/PI)*(Integer.parseInt(rayon)/6378137d), currentLongitude + (180d/PI)*(Integer.parseInt(rayon)/6378137d)/cos(currentLatitude));
+                            LatLng neLimit = new LatLng(currentLatitude + (180d/PI)*(Integer.parseInt(rayon)/6378137d), currentLongitude - (180d/PI)*(Integer.parseInt(rayon)/6378137d)/cos(currentLatitude));
+                            System.out.println(swLimit);
+                            System.out.println(pos);
+                            mMap.setLatLngBoundsForCameraTarget(new LatLngBounds(swLimit, neLimit));
                             placesMap = new HashMap<Marker, JSONObject>();
                             JSONArray jsonPlacesArray = jsonAllPlaces.getJSONArray("results");
-                            if (jsonPlacesArray.length() <= 0)
+                            if (jsonPlacesArray.length() <= 0) {
+                                ((TextView) findViewById(R.id.name_POI)).setText("Aucun lieu trouvé correspondant à la recherche désirée");
+                                ((TextView) findViewById(R.id.dist_POI)).setText("");
                                 return;
+                            }
 
                             // Add markers on map for all POI found and keep the closest
                             JSONObject closest = null;
@@ -213,11 +242,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-
         mMap = googleMap;
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
+            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                ;
+        }
+        mMap.setMyLocationEnabled(true);
         UiSettings us = mMap.getUiSettings();
-        us.setAllGesturesEnabled(false);
-        us.setZoomGesturesEnabled(true);
+        us.setMyLocationButtonEnabled(true);
+        us.setAllGesturesEnabled(true);
         us.setMapToolbarEnabled(false);
 
         mMap.setOnMarkerClickListener(this);
