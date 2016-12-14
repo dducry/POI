@@ -1,17 +1,14 @@
 package com.poi.poi;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -20,8 +17,14 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -44,23 +47,29 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static java.lang.Math.PI;
 import static java.lang.Math.cos;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, LocationListener, SharedPreferences.OnSharedPreferenceChangeListener {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, LocationListener, SharedPreferences.OnSharedPreferenceChangeListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private GoogleMap mMap;
+    private GoogleApiClient mGoogleApiClient;
+    private LocationRequest mLocationRequest;
     private Location currentLocation;
-    private LocationManager locationManager;
     private Map<Marker, JSONObject> placesMap;
     private Marker currentMarker = null;
-    private String locationProvider;
     private SharedPreferences preferences;
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
 
+    private View.OnClickListener clickListenerTrackingButton = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Intent trackingActivity = new Intent(MainActivity.this, TrackingActivity.class);
+            startActivity(trackingActivity);
+        }
+    };
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
@@ -199,15 +208,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
         preferences.registerOnSharedPreferenceChangeListener(this);
 
-        // Obtain the current location
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        searchLocationProvider();
+        // Create an instance of Google API Client
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+        }
 
+        // Sets the main layout to the activity
         setContentView(R.layout.activity_main);
+
+        // Adds the toolbar to the activity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        // Link the listener to the tracking button
+        Button trackingButton = (Button) findViewById(R.id.trackingButton);
+        trackingButton.setOnClickListener(clickListenerTrackingButton);
 
+        // Adds the button to the activity
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -221,9 +242,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+    }
 
-        // Launch searching thread
-        new Thread(new SearchPoiThread()).start();
+    protected void onStart() {
+        mGoogleApiClient.connect();
+        super.onStart();
+    }
+
+    protected void onStop() {
+        mGoogleApiClient.disconnect();
+        super.onStop();
     }
 
 
@@ -268,12 +296,45 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         mMap.setOnMarkerClickListener(this);
+        LatLng posInit = null;
+        if (currentLocation != null) {
+            posInit = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+        } else {
+            posInit = new LatLng(0, 0);
+        }
 
-        LatLng posInit = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
         float zoomInit = 14f;
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(posInit, zoomInit));
     }
 
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        // Once connected to google api client, we request the current location and launch the searching thread.
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
+            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                ;
+        }
+        Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (lastKnownLocation != null) {
+            currentLocation = lastKnownLocation;
+            new Thread(new SearchPoiThread()).start();
+        }
+
+        createLocationRequest();
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -336,33 +397,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        // if we loose the current location provider or if there is no locationProvider yet, then we look for another.
-        if ((provider.equals(locationProvider) && status == LocationProvider.OUT_OF_SERVICE) || (locationProvider == null && status == LocationProvider.AVAILABLE))
-            searchLocationProvider();
-    }
-
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        // if there is no locationProvider yet and the new one respects the criteria, so we take it
-        if (locationProvider == null) {
-            Criteria criteria = new Criteria();
-            criteria.setAccuracy(Criteria.ACCURACY_FINE);
-            List<String> locationProviders = locationManager.getProviders(criteria, true);
-            if (locationProviders.contains(provider))
-                locationProvider = provider;
-        }
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        // if user disables the current location provider, then we look for another.
-        if (provider.equals(locationProvider))
-            searchLocationProvider();
-    }
-
-    @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int grantResults[]) {
         /*switch (requestCode) {
             case ACCESS_FINE_LOCATION_REQUEST: {
@@ -372,28 +406,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         */
     }
 
-
-    protected void searchLocationProvider() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
-            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-                ;
-        }
-        Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        locationProvider = locationManager.getBestProvider(criteria, true);
-        locationManager.requestLocationUpdates(locationProvider, 120000, 50, this);
-        currentLocation = locationManager.getLastKnownLocation(locationProvider);
-        // if no location is provided, then create a fictive location
-        if (currentLocation == null) {
-            currentLocation = new Location("");
-            currentLocation.setLatitude(0.0d);
-            currentLocation.setLongitude(0.0d);
-        }
+    protected void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(10000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
 
-        // Static method to manage connection to google places server returning JSON data
+    // Static method to manage connection to google places server returning JSON data
 
     public static JSONObject getJSONObjectFromURL(String urlString) throws IOException, JSONException {
 

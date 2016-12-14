@@ -41,6 +41,12 @@
         </activity>
 
         <activity
+            android:name=".TrackingActivity"
+            android:label="POI"
+            android:theme="@style/AppTheme.NoActionBar">
+        </activity>
+
+        <activity
             android:name=".PreferenceActivityExample"
             android:label="monLabel">
         </activity>

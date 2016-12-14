@@ -9,19 +9,19 @@
             android:positiveButtonText="OK"
             android:title="Rayon de recherche" />
         <ListPreference
-            android:key="types"
             android:dialogTitle="Choisissez le type de lieu"
-            android:title="Types de lieu"
             android:entries="@array/liste_type"
             android:entryValues="@array/liste_type"
-            android:negativeButtonText="Annuler" />
+            android:key="types"
+            android:negativeButtonText="Annuler"
+            android:title="Types de lieu" />
         <ListPreference
-            android:key="types_carte"
             android:dialogTitle="Choisissez le type de carte"
-            android:title="Types de carte"
             android:entries="@array/liste_type_carte"
             android:entryValues="@array/liste_type_carte"
-            android:negativeButtonText="Annuler" />
+            android:key="types_carte"
+            android:negativeButtonText="Annuler"
+            android:title="Types de carte" />
     </PreferenceCategory>
 
 </PreferenceScreen>
