@@ -22,7 +22,9 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 
 public class TrackingActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
@@ -33,10 +35,12 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private Location currentLocation;
     private Location poiLocation;
     private SharedPreferences preferences;
+    private boolean orientedMode = true;
 
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
-    private final int LOCATION_UPDATE_FREQUENCY = 3000;
-    private final float ZOOM_INIT = 19f;
+    private final int LOCATION_UPDATE_FREQUENCY = 10000;
+    private final float ZOOM_INIT = 20f;
+    private final float TILT_INIT = 60;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,9 +112,6 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                 break;
             }
         }
-
-        mMap.moveCamera(CameraUpdateFactory.zoomTo(ZOOM_INIT));
-
     }
 
 
@@ -124,10 +125,28 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (lastKnownLocation != null) {
             currentLocation = lastKnownLocation;
-            final double currentLatitude = currentLocation.getLatitude();
-            final double currentLongitude = currentLocation.getLongitude();
-            if (mMap != null)
-                mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(currentLatitude, currentLongitude)));
+            LatLng currentPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+            LatLng poiPosition = new LatLng(poiLocation.getLatitude(), poiLocation.getLongitude());
+
+            // Draw the line
+            PolylineOptions polylineOptions = new PolylineOptions()
+                    .add(currentPosition, poiPosition)
+                    .color(0xFFFF0000);
+            mMap.addPolyline(polylineOptions);
+
+            if (mMap != null) {
+                if (!orientedMode)
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentPosition, ZOOM_INIT));
+                else {
+                    CameraPosition cameraPosition = new CameraPosition.Builder()
+                            .target(currentPosition)
+                            .zoom(ZOOM_INIT)
+                            .bearing(currentLocation.bearingTo(poiLocation))
+                            .tilt(TILT_INIT)
+                            .build();
+                    mMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                }
+            }
         }
 
         createLocationRequest();
@@ -156,6 +175,18 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     @Override
     public void onLocationChanged(Location location) {
         currentLocation = location;
-        mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude())), LOCATION_UPDATE_FREQUENCY, null);
+        final double currentLatitude = currentLocation.getLatitude();
+        final double currentLongitude = currentLocation.getLongitude();
+        if (!orientedMode)
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(currentLatitude, currentLongitude)), LOCATION_UPDATE_FREQUENCY, null);
+        else {
+            CameraPosition cameraPosition = new CameraPosition.Builder()
+                    .target(new LatLng(currentLatitude, currentLongitude))
+                    .zoom(ZOOM_INIT)
+                    .bearing(currentLocation.bearingTo(poiLocation))
+                    .tilt(TILT_INIT)
+                    .build();
+            mMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+        }
     }
 }
