@@ -1,6 +1,7 @@
 package com.poi.poi;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -61,13 +62,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Map<Marker, JSONObject> placesMap;
     private Marker currentMarker = null;
     private SharedPreferences preferences;
+
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
+    private final int LOCATION_UPDATE_FREQUENCY = 10000;
+    private final int ID_BOX_TRACK_ERROR = 1;
+    private final float ZOOM_INIT = 16f;
+
+    public final static String LATITUDE = "com.poi.poi.latitude";
+    public final static String LONGITUDE = "com.poi.poi.longitude";
 
     private View.OnClickListener clickListenerTrackingButton = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Intent trackingActivity = new Intent(MainActivity.this, TrackingActivity.class);
-            startActivity(trackingActivity);
+            if (currentMarker != null) {
+                Intent trackingActivity = new Intent(MainActivity.this, TrackingActivity.class);
+                JSONObject currentPlace = placesMap.get(currentMarker);
+                try {
+                    double latitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lat");
+                    double longitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lng");
+                    trackingActivity.putExtra(LATITUDE, latitude);
+                    trackingActivity.putExtra(LONGITUDE, longitude);
+                    startActivity(trackingActivity);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                showDialog(ID_BOX_TRACK_ERROR);
+            }
         }
     };
 
@@ -125,10 +146,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         try {
                             // Remove every elements on the map
                             mMap.clear();
+                            currentMarker = null;
 
                             // Move camera to the current location
                             LatLng pos = new LatLng(currentLatitude, currentLongitude);
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, mMap.getCameraPosition().zoom));
+                            mMap.animateCamera(CameraUpdateFactory.newLatLng(pos));
 
                             // Draw the circle
                             CircleOptions co = new CircleOptions()
@@ -296,15 +318,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         mMap.setOnMarkerClickListener(this);
-        LatLng posInit = null;
-        if (currentLocation != null) {
-            posInit = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-        } else {
-            posInit = new LatLng(0, 0);
-        }
-
-        float zoomInit = 14f;
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(posInit, zoomInit));
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(ZOOM_INIT));
     }
 
     @Override
@@ -318,6 +332,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (lastKnownLocation != null) {
             currentLocation = lastKnownLocation;
+            final double currentLatitude = currentLocation.getLatitude();
+            final double currentLongitude = currentLocation.getLongitude();
+            if (mMap != null)
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(currentLatitude, currentLongitude)));
             new Thread(new SearchPoiThread()).start();
         }
 
@@ -406,10 +424,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         */
     }
 
+
+    @Override
+    public Dialog onCreateDialog(int identifiant) {
+        Dialog box = null;
+        switch (identifiant) {
+            case ID_BOX_TRACK_ERROR: {
+                box = new Dialog(this);
+                box.setTitle("Aucun POI sélectionné");
+                break;
+            }
+        }
+        return box;
+    }
+
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(10000);
+        mLocationRequest.setInterval(LOCATION_UPDATE_FREQUENCY);
+        mLocationRequest.setFastestInterval(LOCATION_UPDATE_FREQUENCY);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
