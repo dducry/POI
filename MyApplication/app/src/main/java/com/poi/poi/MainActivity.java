@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -62,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Map<Marker, JSONObject> placesMap;
     private Marker currentMarker = null;
     private SharedPreferences preferences;
+    private CoordinatorLayout mainLayout;
 
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
     private final int LOCATION_UPDATE_FREQUENCY = 10000;
@@ -239,19 +241,38 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     .build();
         }
 
-        // Sets the main layout to the activity
-        setContentView(R.layout.activity_main);
+        // Sets the booting layout for 3 seconds
+        mainLayout = (CoordinatorLayout) CoordinatorLayout.inflate(this, R.layout.activity_main, null);
+        setContentView(R.layout.booting);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                runOnUiThread(new Runnable() {
+                                  @Override
+                                  public void run() {
+                                     setContentView(mainLayout);
+                                  }
+                              }
+                );
+            }
+        }).start();
 
         // Adds the toolbar to the activity
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = (Toolbar) mainLayout.findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         // Link the listener to the tracking button
-        Button trackingButton = (Button) findViewById(R.id.trackingButton);
+        Button trackingButton = (Button) mainLayout.findViewById(R.id.trackingButton);
         trackingButton.setOnClickListener(clickListenerTrackingButton);
 
         // Adds the button to the activity
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) mainLayout.findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -400,8 +421,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             float distance[] = new float[1];
             Location.distanceBetween(latitude, longitude, currentLatitude, currentLongitude, distance);
-            ((TextView) findViewById(R.id.name_POI)).setText(name);
-            ((TextView) findViewById(R.id.dist_POI)).setText(Integer.toString(Math.round(distance[0])) + "m");
+            ((TextView) mainLayout.findViewById(R.id.name_POI)).setText(name);
+            ((TextView) mainLayout.findViewById(R.id.dist_POI)).setText(Integer.toString(Math.round(distance[0])) + "m");
         } catch (JSONException e) {
             e.printStackTrace();
         }

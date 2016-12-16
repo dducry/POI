@@ -49,7 +49,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private boolean orientedMode = false;
 
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
-    private final int LOCATION_UPDATE_FREQUENCY = 3000;
+    private final int LOCATION_UPDATE_FREQUENCY = 5000;
     private final float ZOOM_INIT = 20f;
     private final float TILT_INIT = 60;
 
@@ -92,6 +92,9 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
     protected void onStop() {
         mGoogleApiClient.disconnect();
+        currentMarker.remove();
+        currentPolyline.remove();
+        poiMarker.remove();
         super.onStop();
     }
 
@@ -195,20 +198,20 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         currentLocation = location;
         LatLng finalPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
 
-        // Update markers and polyline
-        animate(startPosition, finalPosition, poiPosition);
-
         if (!orientedMode)
-            mMap.animateCamera(CameraUpdateFactory.newLatLng(startPosition), LOCATION_UPDATE_FREQUENCY*2, null);
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition), LOCATION_UPDATE_FREQUENCY, null);
         else {
             CameraPosition cameraPosition = new CameraPosition.Builder()
-                    .target(startPosition)
+                    .target(finalPosition)
                     .zoom(ZOOM_INIT)
                     .bearing(currentLocation.bearingTo(poiLocation))
                     .tilt(TILT_INIT)
                     .build();
             mMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
         }
+
+        // Update markers and polyline
+        animate(startPosition, finalPosition, poiPosition);
     }
 
 
@@ -216,7 +219,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         final Handler handler = new Handler();
         final long start = SystemClock.uptimeMillis();
         final Interpolator interpolator = new AccelerateDecelerateInterpolator();
-        final float durationInMs = 3000;
+        final float durationInMs = LOCATION_UPDATE_FREQUENCY;
 
         handler.post(new Runnable() {
             long elapsed;
@@ -244,7 +247,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                 // Repeat till progress is complete.
                 if (t < 1) {
                     // Post again 16ms later.
-                    handler.postDelayed(this, 16);
+                    handler.postDelayed(this, 32);
                 }
             }
         });
