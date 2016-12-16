@@ -6,11 +6,15 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.Interpolator;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -22,8 +26,12 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 
@@ -34,11 +42,14 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private LocationRequest mLocationRequest;
     private Location currentLocation;
     private Location poiLocation;
+    private Marker currentMarker;
+    private Marker poiMarker;
     private SharedPreferences preferences;
-    private boolean orientedMode = true;
+    private Polyline currentPolyline;
+    private boolean orientedMode = false;
 
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
-    private final int LOCATION_UPDATE_FREQUENCY = 10000;
+    private final int LOCATION_UPDATE_FREQUENCY = 3000;
     private final float ZOOM_INIT = 20f;
     private final float TILT_INIT = 60;
 
@@ -87,15 +98,9 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
-            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-                ;
-        }
-        mMap.setMyLocationEnabled(true);
         UiSettings us = mMap.getUiSettings();
-        us.setMyLocationButtonEnabled(false);
         us.setAllGesturesEnabled(false);
+        us.setZoomGesturesEnabled(true);
         us.setMapToolbarEnabled(false);
 
         switch (preferences.getString("types_carte", "normal")) {
@@ -128,11 +133,22 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             LatLng currentPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
             LatLng poiPosition = new LatLng(poiLocation.getLatitude(), poiLocation.getLongitude());
 
+            // Draw markers
+            currentMarker = mMap.addMarker(new MarkerOptions()
+                    .position(currentPosition)
+                    .anchor(0.5f, 0.5f)
+                    .icon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_compass)));
+            poiMarker = mMap.addMarker(new MarkerOptions()
+                    .position(poiPosition)
+                    .anchor(0.5f, 0.5f)
+                    .icon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float)));
+
             // Draw the line
             PolylineOptions polylineOptions = new PolylineOptions()
                     .add(currentPosition, poiPosition)
-                    .color(0xFFFF0000);
-            mMap.addPolyline(polylineOptions);
+                    .color(0xFFFF0000)
+                    .width(60f);
+            currentPolyline = mMap.addPolyline(polylineOptions);
 
             if (mMap != null) {
                 if (!orientedMode)
@@ -174,19 +190,63 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
     @Override
     public void onLocationChanged(Location location) {
+        LatLng startPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+        LatLng poiPosition = new LatLng(poiLocation.getLatitude(), poiLocation.getLongitude());
         currentLocation = location;
-        final double currentLatitude = currentLocation.getLatitude();
-        final double currentLongitude = currentLocation.getLongitude();
+        LatLng finalPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+
+        // Update markers and polyline
+        animate(startPosition, finalPosition, poiPosition);
+
         if (!orientedMode)
-            mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(currentLatitude, currentLongitude)), LOCATION_UPDATE_FREQUENCY, null);
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(startPosition), LOCATION_UPDATE_FREQUENCY*2, null);
         else {
             CameraPosition cameraPosition = new CameraPosition.Builder()
-                    .target(new LatLng(currentLatitude, currentLongitude))
+                    .target(startPosition)
                     .zoom(ZOOM_INIT)
                     .bearing(currentLocation.bearingTo(poiLocation))
                     .tilt(TILT_INIT)
                     .build();
             mMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
         }
+    }
+
+
+    void animate(final LatLng startPosition, final LatLng finalPosition, final LatLng poiPosition) {
+        final Handler handler = new Handler();
+        final long start = SystemClock.uptimeMillis();
+        final Interpolator interpolator = new AccelerateDecelerateInterpolator();
+        final float durationInMs = 3000;
+
+        handler.post(new Runnable() {
+            long elapsed;
+            float t;
+            float v;
+
+            @Override
+            public void run() {
+                // Calculate progress using interpolator
+                elapsed = SystemClock.uptimeMillis() - start;
+                t = elapsed / durationInMs;
+                v = interpolator.getInterpolation(t);
+
+                double clatitude = (finalPosition.latitude - startPosition.latitude) * v + startPosition.latitude;
+                double clongitude = (finalPosition.longitude - startPosition.longitude) * v + startPosition.longitude;
+                LatLng newPosition = new LatLng(clatitude, clongitude);
+                currentPolyline.remove();
+                PolylineOptions polylineOptions = new PolylineOptions()
+                        .add(newPosition, poiPosition)
+                        .color(0xFFFF0000)
+                        .width(60f);
+                currentPolyline = mMap.addPolyline(polylineOptions);
+                currentMarker.setPosition(newPosition);
+
+                // Repeat till progress is complete.
+                if (t < 1) {
+                    // Post again 16ms later.
+                    handler.postDelayed(this, 16);
+                }
+            }
+        });
     }
 }
