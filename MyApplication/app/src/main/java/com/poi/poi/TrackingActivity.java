@@ -39,22 +39,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-<<<<<<< HEAD
-/*Ajouté par Damien*/
-
-import android.util.Log;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-=======
-import java.util.List;
-
-/*Ajouté par Damien*/
->>>>>>> 41968446f0d07fb6b8a53c6baee1f7fa90f989e3
-
-/*-----------------*/
-
 
 public class TrackingActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, SensorEventListener {
 
@@ -132,17 +116,10 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
     protected void onStop() {
         mGoogleApiClient.disconnect();
-<<<<<<< HEAD
         currentMarker.remove();
         currentPolyline.remove();
         poiMarker.remove();
-=======
 
-        /*Ajouté par Damien*/
-        sensorManager.unregisterListener(sensorListener);
-        /*-----------------*/
-
->>>>>>> 41968446f0d07fb6b8a53c6baee1f7fa90f989e3
         super.onStop();
     }
 
