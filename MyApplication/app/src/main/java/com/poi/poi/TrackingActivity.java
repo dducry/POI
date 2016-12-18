@@ -306,8 +306,6 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             @Override
             public void run() {
 
-                Log.i("LOOL","LOOOOL");
-
                 // Calculate progress using interpolator
                 elapsed = SystemClock.uptimeMillis() - start;
                 t = elapsed / durationInMs;
