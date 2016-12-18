@@ -1,9 +1,14 @@
 package com.poi.poi;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,17 +39,9 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-/*Ajouté par Damien*/
-
 import java.util.List;
 
-import android.app.Activity;
-import android.content.Context;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import android.util.Log;
+/*Ajouté par Damien*/
 
 /*-----------------*/
 
@@ -154,9 +151,6 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
     protected void onStop() {
         mGoogleApiClient.disconnect();
-        currentMarker.remove();
-        currentPolyline.remove();
-        poiMarker.remove();
 
         /*Ajouté par Damien*/
         sensorManager.unregisterListener(sensorListener);
@@ -203,6 +197,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             LatLng currentPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
             LatLng poiPosition = new LatLng(poiLocation.getLatitude(), poiLocation.getLongitude());
 
+            mMap.clear();
             // Draw markers
             currentMarker = mMap.addMarker(new MarkerOptions()
                     .position(currentPosition)
