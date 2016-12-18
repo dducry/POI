@@ -36,20 +36,16 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 /*Ajouté par Damien*/
 
-import java.util.List;
-
-import android.app.Activity;
-import android.content.Context;
+import android.util.Log;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.util.Log;
 
 /*-----------------*/
 
 
-public class TrackingActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
+public class TrackingActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, SensorEventListener {
 
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
@@ -69,36 +65,14 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
     /*Ajouté par Damien*/
 
+    Float azimut;  // View to draw a compass
+    private SensorManager mSensorManager;
+    Sensor accelerometer;
+    Sensor magnetometer;
+    float orientation[] = new float[3];
     private CompassView compassView;
-    private SensorManager sensorManager;
-    private Sensor sensor;
 
-    //Notre listener sur le capteur de la boussole numérique
-    private final SensorEventListener sensorListener = new SensorEventListener() {
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-            //currentLocation.getBearing();
-            if(currentLocation == null){
-                updateOrientation(event.values[SensorManager.DATA_X]);
-            }
-            else{
-                updateOrientation(currentLocation.bearingTo(poiLocation) - event.values[SensorManager.DATA_X]);
-                //Log.i("pop", Float.toString(currentLocation.bearingTo(poiLocation)));
-            }
-            //updateOrientation(currentLocation.getBearing());
-            //currentLocation.bearingTo(poiLocation)
-            //Log.i("pop", Float.toString(currentLocation.bearingTo(poiLocation)));
-
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        }
-    };
-
-    /*-----------------*/
-
-
+    /*------------------*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,17 +106,10 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         mapFragment.getMapAsync(this);
 
         /*Ajouté par Damien*/
-
         compassView = (CompassView)findViewById(R.id.compassView);
-        //Récupération du gestionnaire de capteurs
-        sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        //Demander au gestionnaire de capteur de nous retourner les capteurs de type boussole
-        List<Sensor> sensors =sensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
-        //s’il y a plusieurs capteurs de ce type on garde uniquement le premier
-        if (sensors.size() > 0) {
-            sensor = sensors.get(0);
-        }
-
+        mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        magnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         /*-----------------*/
 
     }
@@ -157,11 +124,6 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         currentMarker.remove();
         currentPolyline.remove();
         poiMarker.remove();
-
-        /*Ajouté par Damien*/
-        sensorManager.unregisterListener(sensorListener);
-        /*-----------------*/
-
         super.onStop();
     }
 
@@ -194,8 +156,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     public void onConnected(@Nullable Bundle bundle) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
-            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-                ;
+            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED);
         }
         Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (lastKnownLocation != null) {
@@ -290,13 +251,46 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         compassView.setNorthOrientation(rotation);
     }
 
-
-    @Override
-    protected void onResume(){
+    protected void onResume() {
         super.onResume();
-        //Lier les évènements de la boussole numérique au listener
-        sensorManager.registerListener(sensorListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        mSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
+        mSensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
+    }
 
+    protected void onPause() {
+        super.onPause();
+        mSensorManager.unregisterListener(this);
+    }
+
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {  }
+
+    float[] mGravity;
+    float[] mGeomagnetic;
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+            mGravity = event.values;
+        if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+            mGeomagnetic = event.values;
+        if (mGravity != null && mGeomagnetic != null) {
+            float R[] = new float[9];
+            float I[] = new float[9];
+            boolean success = SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic);
+            if (success) {
+                //float orientation[] = new float[3];
+                SensorManager.getOrientation(R, orientation);
+                azimut = orientation[0]; // orientation contains: azimut, pitch and roll
+            }
+        }
+
+        float angle = (180 * orientation[0]) / (float)Math.PI;
+
+        if(currentLocation == null){
+            updateOrientation(angle);
+        }
+        else{
+            updateOrientation(angle - currentLocation.bearingTo(poiLocation));
+            //Log.i("angle", Float.toString(angle));
+        }
     }
     /*------------------*/
 
