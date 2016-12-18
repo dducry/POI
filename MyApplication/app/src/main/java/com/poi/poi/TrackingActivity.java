@@ -77,8 +77,14 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private final SensorEventListener sensorListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            updateOrientation(event.values[SensorManager.DATA_X]);
-            //Log.i("pop", Float.toString(event.values[SensorManager.DATA_X]));
+            //currentLocation.getBearing();
+            if(currentLocation == null){
+                updateOrientation(event.values[SensorManager.DATA_X]);
+            }
+            else{
+                updateOrientation(currentLocation.getBearing());
+                //Log.i("pop", Float.toString(currentLocation.bearingTo(poiLocation)));
+            }
 
         }
 
