@@ -1,9 +1,14 @@
 package com.poi.poi;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,6 +39,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+<<<<<<< HEAD
 /*Ajouté par Damien*/
 
 import android.util.Log;
@@ -41,6 +47,11 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+=======
+import java.util.List;
+
+/*Ajouté par Damien*/
+>>>>>>> 41968446f0d07fb6b8a53c6baee1f7fa90f989e3
 
 /*-----------------*/
 
@@ -121,9 +132,17 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
     protected void onStop() {
         mGoogleApiClient.disconnect();
+<<<<<<< HEAD
         currentMarker.remove();
         currentPolyline.remove();
         poiMarker.remove();
+=======
+
+        /*Ajouté par Damien*/
+        sensorManager.unregisterListener(sensorListener);
+        /*-----------------*/
+
+>>>>>>> 41968446f0d07fb6b8a53c6baee1f7fa90f989e3
         super.onStop();
     }
 
@@ -164,6 +183,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             LatLng currentPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
             LatLng poiPosition = new LatLng(poiLocation.getLatitude(), poiLocation.getLongitude());
 
+            mMap.clear();
             // Draw markers
             currentMarker = mMap.addMarker(new MarkerOptions()
                     .position(currentPosition)

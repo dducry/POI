@@ -10,7 +10,7 @@
     <include layout="@layout/activity_maps" />
 
     <!--Ajouté par Damien / Layer aussi modifié précédemment -->
-    <com.poi.poi.CompassView	xmlns:android="http://schemas.android.com/apk/res/android"
+    <com.poi.poi.CompassView
         android:id="@+id/compassView"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
