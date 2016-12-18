@@ -34,6 +34,20 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+/*Ajouté par Damien*/
+
+import java.util.List;
+
+import android.app.Activity;
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.util.Log;
+
+/*-----------------*/
+
 
 public class TrackingActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
@@ -52,6 +66,30 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private final int LOCATION_UPDATE_FREQUENCY = 5000;
     private final float ZOOM_INIT = 20f;
     private final float TILT_INIT = 60;
+
+    /*Ajouté par Damien*/
+
+    private CompassView compassView;
+    private SensorManager sensorManager;
+    private Sensor sensor;
+
+    //Notre listener sur le capteur de la boussole numérique
+    private final SensorEventListener sensorListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            updateOrientation(event.values[SensorManager.DATA_X]);
+            //Log.i("pop", Float.toString(event.values[SensorManager.DATA_X]));
+
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+    };
+
+    /*-----------------*/
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +121,21 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        /*Ajouté par Damien*/
+
+        compassView = (CompassView)findViewById(R.id.compassView);
+        //Récupération du gestionnaire de capteurs
+        sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        //Demander au gestionnaire de capteur de nous retourner les capteurs de type boussole
+        List<Sensor> sensors =sensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
+        //s’il y a plusieurs capteurs de ce type on garde uniquement le premier
+        if (sensors.size() > 0) {
+            sensor = sensors.get(0);
+        }
+
+        /*-----------------*/
+
     }
 
     protected void onStart() {
@@ -95,6 +148,11 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         currentMarker.remove();
         currentPolyline.remove();
         poiMarker.remove();
+
+        /*Ajouté par Damien*/
+        sensorManager.unregisterListener(sensorListener);
+        /*-----------------*/
+
         super.onStop();
     }
 
@@ -215,6 +273,25 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     }
 
 
+    /*Ajouté par Damien*/
+
+    //Mettre à jour l'orientation
+    protected void updateOrientation(float rotation)
+    {
+        compassView.setNorthOrientation(rotation);
+    }
+
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        //Lier les évènements de la boussole numérique au listener
+        sensorManager.registerListener(sensorListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+    }
+    /*------------------*/
+
+
     void animate(final LatLng startPosition, final LatLng finalPosition, final LatLng poiPosition) {
         final Handler handler = new Handler();
         final long start = SystemClock.uptimeMillis();
@@ -228,6 +305,9 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
             @Override
             public void run() {
+
+                Log.i("LOOL","LOOOOL");
+
                 // Calculate progress using interpolator
                 elapsed = SystemClock.uptimeMillis() - start;
                 t = elapsed / durationInMs;
