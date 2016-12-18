@@ -82,9 +82,12 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                 updateOrientation(event.values[SensorManager.DATA_X]);
             }
             else{
-                updateOrientation(currentLocation.getBearing());
+                updateOrientation(currentLocation.bearingTo(poiLocation));
                 //Log.i("pop", Float.toString(currentLocation.bearingTo(poiLocation)));
             }
+            //updateOrientation(currentLocation.getBearing());
+            //currentLocation.bearingTo(poiLocation)
+            //Log.i("pop", Float.toString(currentLocation.bearingTo(poiLocation)));
 
         }
 
