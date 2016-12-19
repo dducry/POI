@@ -12,8 +12,8 @@
     <!--Ajouté par Damien / Layer aussi modifié précédemment -->
     <com.poi.poi.CompassView
         android:id="@+id/compassView"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_width="172dp"
+        android:layout_height="175dp"
         android:layout_margin="5px"/>
 
 </LinearLayout>
