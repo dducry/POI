@@ -151,8 +151,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         UiSettings us = mMap.getUiSettings();
-        us.setAllGesturesEnabled(false);
-        us.setZoomGesturesEnabled(true);
+        us.setAllGesturesEnabled(true);
         us.setMapToolbarEnabled(false);
 
         switch (preferences.getString("types_carte", "normal")) {
