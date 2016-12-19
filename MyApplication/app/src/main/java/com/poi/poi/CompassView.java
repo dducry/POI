@@ -215,15 +215,15 @@ public class CompassView extends View {
         // pointe vers le haut
         trianglePath.reset();    // RAZ du path (une seule instance)
         trianglePath.moveTo(centerX, 10);
-        trianglePath.lineTo(centerX - 10, centerY);
-        trianglePath.lineTo(centerX + 10, centerY);
+        trianglePath.lineTo(centerX - 30, centerY);
+        trianglePath.lineTo(centerX + 30, centerY);
 
         // On désigne l'aiguille Nord
         canvas.drawPath(trianglePath, northPaint);
 
         // On tourne notre vue de 180° pour désigner l'auguille Sud
-        canvas.rotate(180, centerX, centerY);
-        canvas.drawPath(trianglePath, southPaint);
+        //canvas.rotate(180, centerX, centerY);
+        //canvas.drawPath(trianglePath, southPaint);
 
         // On restaure la position initiale (inutile, mais prévoyant)
         canvas.restore();

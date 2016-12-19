@@ -3,7 +3,7 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
-    <color name="northPointer">#FF0000</color>
+    <color name="northPointer">#000fb4</color>
     <color name="southPointer">#000000</color>
     <color name="compassCircle">#CCCCFF</color>
 </resources>
