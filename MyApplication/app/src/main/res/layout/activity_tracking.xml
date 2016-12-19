@@ -12,6 +12,8 @@
         android:layout_width="wrap_content"
         android:layout_height="46dp"
         android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginTop="5dp"
         android:layout_gravity="center"
         android:text="name_POI"
         android:textStyle="bold"/>
@@ -52,6 +54,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/compass_or_ra"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="9"
@@ -62,8 +65,7 @@
             android:id="@+id/compassView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="10dp"
-            android:layout_margin="5px" />
+            android:layout_margin="20dp" />
 
         <LinearLayout
             android:layout_width="match_parent"
