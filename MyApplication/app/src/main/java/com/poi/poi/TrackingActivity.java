@@ -1,9 +1,11 @@
 package com.poi.poi;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -17,10 +19,13 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.LinearLayout;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
@@ -88,6 +93,13 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     };
     /*------------------*/
 
+    /* Added by Florian */
+    private Camera mCamera = null;
+    private CameraView cameraView;
+    private HUDView hudView;
+    Sensor rotationSensor;
+    /* ---------------- */
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -135,6 +147,26 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         /*-----------------*/
+
+        /* Added by Florian */
+        try{
+            mCamera = Camera.open();//you can use open(int) to use different cameras
+        } catch (Exception e){
+            Log.d("ERROR", "Failed to get camera: " + e.getMessage());
+        }
+
+        if(mCamera != null) {
+            cameraView = new CameraView(this, mCamera);//create a SurfaceView to show camera data
+            //FrameLayout camera_view = (FrameLayout)findViewById(R.id.camera_view);
+            //camera_view.addView(mCameraView);//add the SurfaceView to the layout
+        }
+
+
+        hudView = new HUDView(this, mCamera.getParameters().getHorizontalViewAngle(), mCamera.getParameters().getVerticalViewAngle());
+        //FrameLayout hud_view = (FrameLayout)findViewById(R.id.hud_view);
+        //hud_view.addView(mCustomDrawableView);//add the SurfaceView to the layout
+        rotationSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        /* ---------------- */
 
     }
 
@@ -266,6 +298,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         super.onResume();
         mSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
         mSensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
+        mSensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_UI);
     }
 
     protected void onPause() {
@@ -304,6 +337,31 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             updateOrientation(angle - currentLocation.bearingTo(poiLocation));
             //Log.i("angle", Float.toString(angle));
         }
+
+        /* Added by Florian */
+        if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+            float[] RIN = new float[16];
+            float[] roationV = new float[16];
+            float[] rotationVector = event.values.clone();
+            //Get Rotation Matrix
+            SensorManager.getRotationMatrixFromVector(RIN, rotationVector);
+            //Rotate Coordinate Ststem to the relative phone system
+            SensorManager.remapCoordinateSystem(RIN, SensorManager.AXIS_X, SensorManager.AXIS_Z, roationV);
+            float orientation[] = new float[3];
+            //Retrive the orientation vector
+            orientation = SensorManager.getOrientation(roationV, orientation);
+            hudView.az.add(orientation[0]);
+            while(hudView.az.size() > 10)
+                hudView.az.poll();
+            hudView.pt.add(orientation[1]);
+            while(hudView.pt.size() > 10)
+                hudView.pt.poll();
+            hudView.rl.add(orientation[2]);
+            while(hudView.rl.size() > 10)
+                hudView.rl.poll();
+        }
+        hudView.invalidate();
+        /* ---------------  */
     }
     /*------------------*/
 
