@@ -72,6 +72,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public final static String LATITUDE = "com.poi.poi.latitude";
     public final static String LONGITUDE = "com.poi.poi.longitude";
+    public final static String POI_NAME = "com.poi.poi.poi_name";
+    public final static String POI_DIST = "com.poi.poi.poi_dist";
 
     private View.OnClickListener clickListenerTrackingButton = new View.OnClickListener() {
         @Override
@@ -82,8 +84,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 try {
                     double latitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lat");
                     double longitude = currentPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lng");
+                    TextView name = (TextView) mainLayout.findViewById(R.id.name_POI);
+                    TextView dist = (TextView) mainLayout.findViewById(R.id.dist_POI);
+
                     trackingActivity.putExtra(LATITUDE, latitude);
                     trackingActivity.putExtra(LONGITUDE, longitude);
+                    trackingActivity.putExtra(POI_NAME, name.getText());
+                    trackingActivity.putExtra(POI_DIST, dist.getText());
                     startActivity(trackingActivity);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -167,8 +174,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             placesMap = new HashMap<Marker, JSONObject>();
                             JSONArray jsonPlacesArray = jsonAllPlaces.getJSONArray("results");
                             if (jsonPlacesArray.length() <= 0) {
-                                ((TextView) findViewById(R.id.name_POI)).setText("Aucun lieu trouvé correspondant à la recherche désirée");
-                                ((TextView) findViewById(R.id.dist_POI)).setText("");
+                                ((TextView) mainLayout.findViewById(R.id.name_POI)).setText("Aucun lieu trouvé correspondant à la recherche désirée");
+                                ((TextView) mainLayout.findViewById(R.id.dist_POI)).setText("");
                                 return;
                             }
 

@@ -1,7 +1,6 @@
 package com.poi.poi;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -20,6 +19,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -84,6 +84,9 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                     .build();
         }
 
+        // Sets the main layout to the activity
+        setContentView(R.layout.activity_tracking);
+
         // Get the location of the poi we are tracking
         Intent i = getIntent();
         double latitude = i.getDoubleExtra(MainActivity.LATITUDE, 0);
@@ -92,17 +95,19 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         poiLocation.setLatitude(latitude);
         poiLocation.setLongitude(longitude);
 
+        // Sets the title
+        String poi_name = i.getStringExtra(MainActivity.POI_NAME);
+        String poi_dist = i.getStringExtra(MainActivity.POI_DIST);
+        ((TextView) findViewById(R.id.tracking_title)).setText(poi_name);
 
-        // Sets the main layout to the activity
-        setContentView(R.layout.activity_tracking);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         /*Ajouté par Damien*/
-        compassView = (CompassView)findViewById(R.id.compassView);
-        mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        compassView = (CompassView) findViewById(R.id.compassView);
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         /*-----------------*/
@@ -152,7 +157,8 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     public void onConnected(@Nullable Bundle bundle) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, ACCESS_FINE_LOCATION_REQUEST);
-            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED);
+            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                ;
         }
         Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (lastKnownLocation != null) {
@@ -175,25 +181,22 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             PolylineOptions polylineOptions = new PolylineOptions()
                     .add(currentPosition, poiPosition)
                     .color(0xFFFF0000)
-                    .width(60f);
+                    .width(30f);
             currentPolyline = mMap.addPolyline(polylineOptions);
 
             if (mMap != null) {
-                if (!orientedMode)
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentPosition, ZOOM_INIT));
-                else {
-                    CameraPosition cameraPosition = new CameraPosition.Builder()
-                            .target(currentPosition)
-                            .zoom(ZOOM_INIT)
-                            .bearing(currentLocation.bearingTo(poiLocation))
-                            .tilt(TILT_INIT)
-                            .build();
-                    mMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-                }
+                CameraPosition cameraPosition = new CameraPosition.Builder()
+                        .target(currentPosition)
+                        .zoom(ZOOM_INIT)
+                        .tilt(TILT_INIT)
+                        .build();
+                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
             }
         }
 
+
         createLocationRequest();
+
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
 
     }
@@ -222,18 +225,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         LatLng poiPosition = new LatLng(poiLocation.getLatitude(), poiLocation.getLongitude());
         currentLocation = location;
         LatLng finalPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-
-        if (!orientedMode)
-            mMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition), LOCATION_UPDATE_FREQUENCY, null);
-        else {
-            CameraPosition cameraPosition = new CameraPosition.Builder()
-                    .target(finalPosition)
-                    .zoom(ZOOM_INIT)
-                    .bearing(currentLocation.bearingTo(poiLocation))
-                    .tilt(TILT_INIT)
-                    .build();
-            mMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-        }
+        mMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition), LOCATION_UPDATE_FREQUENCY, null);
 
         // Update markers and polyline
         animate(startPosition, finalPosition, poiPosition);
@@ -243,8 +235,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     /*Ajouté par Damien*/
 
     //Mettre à jour l'orientation
-    protected void updateOrientation(float rotation)
-    {
+    protected void updateOrientation(float rotation) {
         compassView.setNorthOrientation(rotation);
     }
 
@@ -259,10 +250,12 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         mSensorManager.unregisterListener(this);
     }
 
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {  }
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    }
 
     float[] mGravity;
     float[] mGeomagnetic;
+
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
             mGravity = event.values;
@@ -278,13 +271,13 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                 azimut = orientation[0]; // orientation contains: azimut, pitch and roll
             }
         }
+        ;
 
-        float angle = (180 * orientation[0]) / (float)Math.PI;
+        float angle = (180 * orientation[0]) / (float) Math.PI;
 
-        if(currentLocation == null){
+        if (currentLocation == null) {
             updateOrientation(angle);
-        }
-        else{
+        } else {
             updateOrientation(angle - currentLocation.bearingTo(poiLocation));
             //Log.i("angle", Float.toString(angle));
         }
@@ -318,7 +311,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                 PolylineOptions polylineOptions = new PolylineOptions()
                         .add(newPosition, poiPosition)
                         .color(0xFFFF0000)
-                        .width(60f);
+                        .width(30f);
                 currentPolyline = mMap.addPolyline(polylineOptions);
                 currentMarker.setPosition(newPosition);
 

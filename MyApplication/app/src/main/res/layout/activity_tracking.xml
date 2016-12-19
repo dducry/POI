@@ -7,13 +7,59 @@
     android:orientation="vertical"
     tools:context="com.poi.poi.TrackingActivity">
 
-    <include layout="@layout/activity_maps" />
+    <TextView
+        android:id="@+id/tracking_title"
+        android:layout_width="wrap_content"
+        android:layout_height="46dp"
+        android:layout_gravity="center"
+        android:text="name_POI" />
 
-    <!--Ajouté par Damien / Layer aussi modifié précédemment -->
-    <com.poi.poi.CompassView
-        android:id="@+id/compassView"
-        android:layout_width="172dp"
-        android:layout_height="175dp"
-        android:layout_margin="5px"/>
+    <include
+        layout="@layout/activity_maps"
+        android:layout_height="334dp" />
+
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="center">
+
+        <RadioButton
+            android:text="RadioButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/radioButton6" />
+
+        <RadioButton
+            android:text="RadioButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/radioButton7" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="9"
+        android:orientation="horizontal">
+        <!--Ajouté par Damien / Layer aussi modifié précédemment -->
+
+        <com.poi.poi.CompassView
+            android:id="@+id/compassView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="5px" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <RatingBar
+                android:layout_height="match_parent"
+                android:layout_width="match_parent"/>
+        </LinearLayout>
+
+    </LinearLayout>
 
 </LinearLayout>
