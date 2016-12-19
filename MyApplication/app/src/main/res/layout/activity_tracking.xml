@@ -11,6 +11,7 @@
         android:id="@+id/tracking_title"
         android:layout_width="wrap_content"
         android:layout_height="46dp"
+        android:layout_marginLeft="20dp"
         android:layout_gravity="center"
         android:text="name_POI"
         android:textStyle="bold"/>
@@ -61,6 +62,7 @@
             android:id="@+id/compassView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:padding="10dp"
             android:layout_margin="5px" />
 
         <LinearLayout
