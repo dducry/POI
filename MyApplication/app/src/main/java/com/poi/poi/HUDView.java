@@ -28,6 +28,9 @@ public class HUDView extends View {
     LinkedList<Float> pt = new LinkedList<Float>();
     LinkedList<Float> rl = new LinkedList<Float>();
 
+    public float targetPitch = -45;
+    public float targetAzimuth = 179;
+
     float hFov = 100;
     float vFov = 100;
 
@@ -68,12 +71,15 @@ public class HUDView extends View {
         float meanPt = mean(pt)*180/3.14259f;
         float meanRl = mean(rl)*180/3.14259f;
 
-            /*meanAz = azimut;
-            meanPt = pitch;
-            meanRl = roll;*/
+        float deltaAzimuth = meanAz - targetAzimuth;
+        while(deltaAzimuth > 180)
+            deltaAzimuth -= 360;
+        while(deltaAzimuth < -180)
+            deltaAzimuth += 360;
+        float deltaPitch = meanPt - targetPitch;
 
-        float deltaX = -(width / 2)*(meanAz/(hFov/2));
-        float deltaY = -(height / 2)*(meanPt/(vFov/2));
+        float deltaX = -(width / 2)*(deltaAzimuth/(hFov/2));
+        float deltaY = -(height / 2)*(deltaPitch/(vFov/2));
 
         if(Math.abs(deltaX) < width/2)
             canvas.drawLine(centerx+deltaX, -1000, centerx+deltaX, +1000, paint);
