@@ -20,6 +20,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
@@ -72,10 +73,14 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private View.OnClickListener clickListenerModeButton = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            LinearLayout parent = (LinearLayout) findViewById(R.id.compass_or_ra);
             switch (v.getId()) {
                 case R.id.compass_button:
+                    parent.removeViewAt(0);
                     break;
                 case R.id.reality_button:
+                    CompassView compassView = (CompassView)findViewById(R.id.compassView);
+                    parent.addView(compassView);
                     break;
                 default:
             }
