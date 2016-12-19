@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
     private Location currentLocation;
+    private Location oldLocation;
     private Map<Marker, JSONObject> placesMap;
     private Marker currentMarker = null;
     private SharedPreferences preferences;
@@ -159,7 +160,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                             // Move camera to the current location
                             LatLng pos = new LatLng(currentLatitude, currentLongitude);
-                            mMap.animateCamera(CameraUpdateFactory.newLatLng(pos));
 
                             // Draw the circle
                             CircleOptions co = new CircleOptions()
@@ -263,7 +263,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 runOnUiThread(new Runnable() {
                                   @Override
                                   public void run() {
-                                     setContentView(mainLayout);
+                                      setContentView(mainLayout);
                                   }
                               }
                 );
@@ -360,10 +360,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (lastKnownLocation != null) {
             currentLocation = lastKnownLocation;
+            oldLocation = currentLocation;
             final double currentLatitude = currentLocation.getLatitude();
             final double currentLongitude = currentLocation.getLongitude();
+            LatLng pos = new LatLng(currentLatitude, currentLongitude);
             if (mMap != null)
-                mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(currentLatitude, currentLongitude)));
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(pos));
             new Thread(new SearchPoiThread()).start();
         }
 
@@ -438,7 +440,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onLocationChanged(Location location) {
         currentLocation = location;
-        new Thread(new SearchPoiThread()).start();
+
+        final double currentLatitude = currentLocation.getLatitude();
+        final double currentLongitude = currentLocation.getLongitude();
+        LatLng pos = new LatLng(currentLatitude, currentLongitude);
+        mMap.animateCamera(CameraUpdateFactory.newLatLng(pos));
+
+        if (currentLocation.distanceTo(oldLocation) > 30) {
+            oldLocation = currentLocation;
+            new Thread(new SearchPoiThread()).start();
+        }
 
     }
 
