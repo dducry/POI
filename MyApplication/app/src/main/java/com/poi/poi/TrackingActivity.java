@@ -17,8 +17,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.widget.RadioButton;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -67,6 +69,18 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     float orientation[] = new float[3];
     private CompassView compassView;
 
+    private View.OnClickListener clickListenerModeButton = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            switch (v.getId()) {
+                case R.id.compass_button:
+                    break;
+                case R.id.reality_button:
+                    break;
+                default:
+            }
+        }
+    };
     /*------------------*/
 
     @Override
@@ -86,6 +100,11 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
         // Sets the main layout to the activity
         setContentView(R.layout.activity_tracking);
+
+        RadioButton compassRadioButton = (RadioButton) findViewById(R.id.compass_button);
+        RadioButton realityRadioButton = (RadioButton) findViewById(R.id.reality_button);
+        compassRadioButton.setOnClickListener(clickListenerModeButton);
+        realityRadioButton.setOnClickListener((clickListenerModeButton));
 
         // Get the location of the poi we are tracking
         Intent i = getIntent();
