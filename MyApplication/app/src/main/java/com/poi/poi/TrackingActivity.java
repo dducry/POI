@@ -22,6 +22,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.TextView;
@@ -78,13 +79,17 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             LinearLayout parent = (LinearLayout) findViewById(R.id.compass_or_ra);
             switch (v.getId()) {
                 case R.id.compass_button:
-                    if (!isCompassMode)
+                    if (!isCompassMode) {
+                        parent.removeViewAt(0);
                         parent.addView(compassView, 0);
+                    }
                     isCompassMode = true;
                     break;
                 case R.id.reality_button:
-                    if (isCompassMode)
+                    if (isCompassMode) {
                         parent.removeViewAt(0);
+                        parent.addView(hud_view, 0);
+                    }
                     isCompassMode = false;
                     break;
                 default:
@@ -101,7 +106,9 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
     public TrackingActivity() {
     }
+
     /* ---------------- */
+    private FrameLayout hud_view;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -151,14 +158,19 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         magnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         /*-----------------*/
 
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA,}, ACCESS_FINE_LOCATION_REQUEST);
+            while (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
+                ;
+        }
         /* Added by Florian */
-        try{
+        try {
             mCamera = Camera.open();//you can use open(int) to use different cameras
-        } catch (Exception e){
+        } catch (Exception e) {
             Log.d("ERROR", "Failed to get camera: " + e.getMessage());
         }
 
-        if(mCamera != null) {
+        if (mCamera != null) {
             cameraView = new CameraView(this, mCamera);//create a SurfaceView to show camera data
             //FrameLayout camera_view = (FrameLayout)findViewById(R.id.camera_view);
             //camera_view.addView(mCameraView);//add the SurfaceView to the layout
@@ -166,8 +178,9 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
 
         hudView = new HUDView(this, mCamera.getParameters().getHorizontalViewAngle(), mCamera.getParameters().getVerticalViewAngle());
-        //FrameLayout hud_view = (FrameLayout)findViewById(R.id.hud_view);
-        //hud_view.addView(mCustomDrawableView);//add the SurfaceView to the layout
+        hud_view =(FrameLayout) FrameLayout.inflate(this, R.layout.test, null);
+        hud_view.addView(cameraView);
+        hud_view.addView(hudView);
         rotationSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         /* ---------------- */
 
@@ -354,17 +367,19 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             //Retrive the orientation vector
             orientation = SensorManager.getOrientation(roationV, orientation);
             hudView.az.add(orientation[0]);
-            while(hudView.az.size() > 10)
+            while (hudView.az.size() > 10)
                 hudView.az.poll();
             hudView.pt.add(orientation[1]);
-            while(hudView.pt.size() > 10)
+            while (hudView.pt.size() > 10)
                 hudView.pt.poll();
             hudView.rl.add(orientation[2]);
-            while(hudView.rl.size() > 10)
+            while (hudView.rl.size() > 10)
                 hudView.rl.poll();
 
-            hudView.targetAzimuth = currentLocation.bearingTo(poiLocation);
-            hudView.targetPitch = (float) (-1*Math.atan2(poiLocation.getAltitude() - currentLocation.getAltitude(), currentLocation.distanceTo(poiLocation)));
+            if (currentLocation != null) {
+                hudView.targetAzimuth = currentLocation.bearingTo(poiLocation);
+                hudView.targetPitch = (float) (-1 * Math.atan2(poiLocation.getAltitude() - currentLocation.getAltitude(), currentLocation.distanceTo(poiLocation)));
+            }
         }
         hudView.invalidate();
         /* ---------------  */
