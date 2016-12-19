@@ -1,7 +1,6 @@
 package com.poi.poi;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -24,8 +23,6 @@ import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.LinearLayout;
-import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
@@ -59,7 +56,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private Marker poiMarker;
     private SharedPreferences preferences;
     private Polyline currentPolyline;
-    private boolean orientedMode = false;
+    private boolean isCompassMode = true;
 
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
     private final int LOCATION_UPDATE_FREQUENCY = 5000;
@@ -81,11 +78,14 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             LinearLayout parent = (LinearLayout) findViewById(R.id.compass_or_ra);
             switch (v.getId()) {
                 case R.id.compass_button:
-                    parent.removeViewAt(0);
+                    if (!isCompassMode)
+                        parent.addView(compassView, 0);
+                    isCompassMode = true;
                     break;
                 case R.id.reality_button:
-                    CompassView compassView = (CompassView)findViewById(R.id.compassView);
-                    parent.addView(compassView);
+                    if (isCompassMode)
+                        parent.removeViewAt(0);
+                    isCompassMode = false;
                     break;
                 default:
             }
@@ -98,6 +98,9 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private CameraView cameraView;
     private HUDView hudView;
     Sensor rotationSensor;
+
+    public TrackingActivity() {
+    }
     /* ---------------- */
 
     @Override
