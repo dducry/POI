@@ -354,6 +354,9 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             hudView.rl.add(orientation[2]);
             while(hudView.rl.size() > 10)
                 hudView.rl.poll();
+
+            hudView.targetAzimuth = currentLocation.bearingTo(poiLocation);
+            hudView.targetPitch = (float) (-1*Math.atan2(poiLocation.getAltitude() - currentLocation.getAltitude(), currentLocation.distanceTo(poiLocation)));
         }
         hudView.invalidate();
         /* ---------------  */
