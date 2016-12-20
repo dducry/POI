@@ -58,6 +58,7 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private SharedPreferences preferences;
     private Polyline currentPolyline;
     private boolean isCompassMode = true;
+    private TextView distanceView;
 
     private final int ACCESS_FINE_LOCATION_REQUEST = 0;
     private final int LOCATION_UPDATE_FREQUENCY = 5000;
@@ -76,19 +77,24 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     private View.OnClickListener clickListenerModeButton = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            LinearLayout parent = (LinearLayout) findViewById(R.id.compass_or_ra);
             switch (v.getId()) {
                 case R.id.compass_button:
                     if (!isCompassMode) {
-                        parent.removeViewAt(0);
-                        parent.addView(compassView, 0);
+                        hud_view.setVisibility(View.GONE);
+                        compassView.setVisibility(View.VISIBLE);
+
+                        //parent.removeViewAt(0);
+                        //parent.addView(compassView, 0);
                     }
                     isCompassMode = true;
                     break;
                 case R.id.reality_button:
                     if (isCompassMode) {
-                        parent.removeViewAt(0);
-                        parent.addView(hud_view, 0);
+                        compassView.setVisibility(View.GONE);
+                        hud_view.setVisibility(View.VISIBLE);
+
+                        //parent.removeViewAt(0);
+                        //parent.addView(hud_view, 0);
                     }
                     isCompassMode = false;
                     break;
@@ -125,8 +131,12 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                     .build();
         }
 
+
         // Sets the main layout to the activity
         setContentView(R.layout.activity_tracking);
+
+        distanceView = (TextView) findViewById(R.id.distance);
+
 
         RadioButton compassRadioButton = (RadioButton) findViewById(R.id.compass_button);
         RadioButton realityRadioButton = (RadioButton) findViewById(R.id.reality_button);
@@ -181,6 +191,12 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         hud_view =(FrameLayout) FrameLayout.inflate(this, R.layout.test, null);
         hud_view.addView(cameraView);
         hud_view.addView(hudView);
+
+        LinearLayout parent = (LinearLayout) findViewById(R.id.compass_or_ra);
+        hud_view.setVisibility(View.GONE);
+        compassView.setVisibility(View.VISIBLE);
+        parent.addView(hud_view);
+
         rotationSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         /* ---------------- */
 
@@ -234,6 +250,8 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
         Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (lastKnownLocation != null) {
             currentLocation = lastKnownLocation;
+            float distance = currentLocation.distanceTo(poiLocation);
+            distanceView.setText(Integer.toString(Math.round(distance)) + "m");
             LatLng currentPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
             LatLng poiPosition = new LatLng(poiLocation.getLatitude(), poiLocation.getLongitude());
 
@@ -292,6 +310,8 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
 
     @Override
     public void onLocationChanged(Location location) {
+        float distance = location.distanceTo(poiLocation);
+        distanceView.setText(Integer.toString(Math.round(distance)) + "m");
         LatLng startPosition = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
         LatLng poiPosition = new LatLng(poiLocation.getLatitude(), poiLocation.getLongitude());
         currentLocation = location;
@@ -367,13 +387,13 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
             //Retrive the orientation vector
             orientation = SensorManager.getOrientation(roationV, orientation);
             hudView.az.add(orientation[0]);
-            while (hudView.az.size() > 10)
+            while (hudView.az.size() > 1)
                 hudView.az.poll();
             hudView.pt.add(orientation[1]);
-            while (hudView.pt.size() > 10)
+            while (hudView.pt.size() > 1)
                 hudView.pt.poll();
             hudView.rl.add(orientation[2]);
-            while (hudView.rl.size() > 10)
+            while (hudView.rl.size() > 1)
                 hudView.rl.poll();
 
             if (currentLocation != null) {

@@ -11,12 +11,12 @@
         android:id="@+id/tracking_title"
         android:layout_width="wrap_content"
         android:layout_height="46dp"
+        android:layout_gravity="center"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
         android:layout_marginTop="5dp"
-        android:layout_gravity="center"
         android:text="name_POI"
-        android:textStyle="bold"/>
+        android:textStyle="bold" />
 
     <include
         layout="@layout/activity_maps"
@@ -24,9 +24,8 @@
 
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
         android:orientation="horizontal">
 
 
@@ -34,6 +33,7 @@
             android:id="@+id/radioGroup"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_weight="1"
             android:orientation="horizontal">
 
             <RadioButton
@@ -50,6 +50,14 @@
                 android:text="RA" />
         </RadioGroup>
 
+        <TextView
+            android:id="@+id/distance"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Salut les amis"
+            android:textSize="25sp" />
+
 
     </LinearLayout>
 
@@ -63,22 +71,9 @@
 
         <com.poi.poi.CompassView
             android:id="@+id/compassView"
-            android:layout_width="224dp"
-            android:layout_height="match_parent" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:layout_weight="1"
-            >
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="Salut les amis"/>
-        </LinearLayout>
+            android:layout_marginLeft="85sp"/>
 
     </LinearLayout>
 
