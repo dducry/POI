@@ -17,13 +17,10 @@ import java.io.IOException;
 public class CameraView extends SurfaceView implements SurfaceHolder.Callback{
 
     private SurfaceHolder mHolder;
-    private Camera mCamera;
+    public Camera mCamera;
 
-    public CameraView(Context context, Camera camera){
+    public CameraView(Context context){
         super(context);
-
-        mCamera = camera;
-        mCamera.setDisplayOrientation(90);
         //get the holder and set this class as the callback, so we can get camera data here
         mHolder = getHolder();
         mHolder.addCallback(this);
@@ -33,6 +30,8 @@ public class CameraView extends SurfaceView implements SurfaceHolder.Callback{
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
         try{
+            mCamera = Camera.open();
+            mCamera.setDisplayOrientation(90);
             //when the surface is created, we can set the camera to draw images in this surfaceholder
             mCamera.setPreviewDisplay(surfaceHolder);
             mCamera.startPreview();

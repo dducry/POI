@@ -105,7 +105,6 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
     /*------------------*/
 
     /* Added by Florian */
-    private Camera mCamera = null;
     private CameraView cameraView;
     private HUDView hudView;
     Sensor rotationSensor;
@@ -174,20 +173,13 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                 ;
         }
         /* Added by Florian */
-        try {
-            mCamera = Camera.open();//you can use open(int) to use different cameras
-        } catch (Exception e) {
-            Log.d("ERROR", "Failed to get camera: " + e.getMessage());
-        }
 
-        if (mCamera != null) {
-            cameraView = new CameraView(this, mCamera);//create a SurfaceView to show camera data
-            //FrameLayout camera_view = (FrameLayout)findViewById(R.id.camera_view);
-            //camera_view.addView(mCameraView);//add the SurfaceView to the layout
-        }
+        cameraView = new CameraView(this);//create a SurfaceView to show camera data
+        //FrameLayout camera_view = (FrameLayout)findViewById(R.id.camera_view);
+        // camera_view.addView(mCameraView);//add the SurfaceView to the layo
 
 
-        hudView = new HUDView(this, mCamera.getParameters().getHorizontalViewAngle(), mCamera.getParameters().getVerticalViewAngle());
+        hudView = new HUDView(this, cameraView.mCamera.getParameters().getHorizontalViewAngle(), cameraView.mCamera.getParameters().getVerticalViewAngle());
         hud_view =(FrameLayout) FrameLayout.inflate(this, R.layout.test, null);
         hud_view.addView(cameraView);
         hud_view.addView(hudView);
