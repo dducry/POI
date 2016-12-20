@@ -261,10 +261,12 @@ public class TrackingActivity extends AppCompatActivity implements OnMapReadyCal
                     .position(currentPosition)
                     .anchor(0.5f, 0.5f)
                     .icon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_compass)));
+
             poiMarker = mMap.addMarker(new MarkerOptions()
                     .position(poiPosition)
                     .anchor(0.5f, 0.5f)
-                    .icon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float)));
+                    //.icon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float)));
+                    .icon(BitmapDescriptorFactory.fromResource(android.R.drawable.star_big_on)));
 
             // Draw the line
             PolylineOptions polylineOptions = new PolylineOptions()
