@@ -279,14 +279,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         trackingButton.setOnClickListener(clickListenerTrackingButton);
 
         // Adds the button to the activity
-        FloatingActionButton fab = (FloatingActionButton) mainLayout.findViewById(R.id.fab);
+        /*FloatingActionButton fab = (FloatingActionButton) mainLayout.findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        });
+        });*/
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
